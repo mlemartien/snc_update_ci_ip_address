@@ -57,18 +57,16 @@
 
     }
 
-    // Promote hoisting
+    var grNewNicCi;
+    var grOldNicCi;
 
-    var newNicCi;
-    var oldNicCi;
+    // Get a GlideRecord on both the current and the previous IP Address NIC CI
 
-    // Get a GlideRecord on both the current and the previous NIC
-
-    newNicCi = current.nic.cmdb_ci.getRefRecord();
+    grNewNicCi = current.nic.cmdb_ci.getRefRecord();
     if (current.nic.changes()) {
-        oldNicCi = previous.nic.cmdb_ci.getRefRecord();
+        grOldNicCi = previous.nic.cmdb_ci.getRefRecord();
     } else {
-        oldNicCi = newNicCi;
+        grOldNicCi = grNewNicCi;
     }
 
 
@@ -77,18 +75,18 @@
     switch (String(current.operation())) {
 
         case 'insert':
-        _connectIP(current, newNicCi);
+        _connectIP(current, grNewNicCi);
         break;
 
         case 'update':
         if (current.nic.changes()) {
-            _disconnectIP(previous, oldNicCi);
+            _disconnectIP(previous, grOldNicCi);
         }
-        _connectIP(current, newNicCi);
+        _connectIP(current, grNewNicCi);
         break;
 
         case 'delete':
-        _disconnectIP(current, newNicCi);
+        _disconnectIP(current, grNewNicCi);
         break;
 
     }
