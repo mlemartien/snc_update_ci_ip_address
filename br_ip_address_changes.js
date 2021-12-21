@@ -76,23 +76,16 @@
 
     switch (String(current.operation())) {
 
-        // For a new IP address, simply update the CI with the new IP address
-
         case 'insert':
         _connectIP(current, newNicCi);
         break;
-
-        // For an updated IP address...
 
         case 'update':
         if (current.nic.changes()) {
             _disconnectIP(previous, oldNicCi);
         }
         _connectIP(current, newNicCi);
-
         break;
-
-        // When removing an IP address, verify if it was the last one against this CI
 
         case 'delete':
         _disconnectIP(current, newNicCi);
