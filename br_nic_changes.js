@@ -2,6 +2,24 @@
 
     // Condition: current.operation() === 'delete' || (current.operation() === 'update' && current.cmdb_ci.changes())
 
+    function _connectNIC(grNic, grCi) {
+
+        if (grNic.isValidRecord() && grCi.isValidRecord()) {
+
+            var grIp = new GlideRecord('cmdb_ci_ip_address');
+            grIp.addQuery('nic', grNic.getUniqueValue());
+            grIp.query();
+
+            if (grIp.next()) {
+                 grCi.setValue('ip_address', grIp.getValue('ip_address'));
+                 grCi.setWorkflow(false);
+                 grCi.update();
+            }
+
+        }
+
+    }
+
     function _disconnectNIC(grNic, grCi) {
 
         // Only select the IP addresses from the other NICs
@@ -47,22 +65,10 @@
         // Second attach the same IP address to the new CI
 
         case 'update':
-
         if (current.cmdb_ci.changes()) {
             _disconnectNIC(current, grOldNicCi);
         }
-
-        if (grNewNicCi.isValidRecord()) {
-            var grIp = new GlideRecord('cmdb_ci_ip_address');
-            grIp.addQuery('nic', current.getUniqueValue());
-            grIp.query();
-            if (grIp.next()) {
-                 grNewNicCi.setValue('ip_address', grIp.getValue('ip_address'));
-                 grNewNicCi.setWorkflow(false);
-                 grNewNicCi.update();
-            }
-
-        }
+        _connectNIC(current, grNewNicCi);
         break;
 
         // If the NIC has been deleted, the remove/update the IP address that
