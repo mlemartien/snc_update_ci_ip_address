@@ -1,83 +1,32 @@
 (function initCiIpAddresses() {
 
-    // Condition: current.operation() === 'delete' || (current.operation() === 'update' && current.cmdb_ci.changes())
+    // Note 1: the same CI might be updated several times with a different
+    // ip address, but this is totally fine; we want one of the ip addresses
+    // If time permits, we can implement a cache to prevent useless updates
+    // bug given the processing time (< 15.000 records), it's not worth it
+    //
+    // Note 2: to be decided if we want to keep setWorflow() and autoSysFields()
+    
+    var grIp = new GlideRecord('cmdb_ci_ip_address');
+    grIp.addNotNullQuery('nic');
+    grIp.addNotNullQuery('ip_address');
+    grIp.query();
 
-    function _connectNIC(grNic, grCi) {
+    gs.debug('Found ' + grIp.getRowCount() + ' IP addresses');
 
-        if (grNic.isValidRecord() && grCi.isValidRecord()) {
+    while (grIp.next()) {
 
-            var grIp = new GlideRecord('cmdb_ci_ip_address');
-            grIp.addQuery('nic', grNic.getUniqueValue());
-            grIp.query();
+        var grCi = grIp.nic.cmdb_ci.getRefRecord();
+        if (grCi.isValidRecord()) {
 
-            if (grIp.next()) {
-                 grCi.setValue('ip_address', grIp.getValue('ip_address'));
-                 grCi.setWorkflow(false);
-                 grCi.update();
-            }
-
-        }
-
-    }
-
-    function _disconnectNIC(grNic, grCi) {
-
-        // Only select the IP addresses from the other NICs
-        // attached to the same CI. If we find at least one
-        // then fetch it, otherwise clear the CI IP address field
-
-        if (grNic.isValidRecord() && grCi.isValidRecord()) {
-
-            var grIp = new GlideRecord('cmdb_ci_ip_address');
-            grIp.addQuery('nic.cmdb_ci', grCi.getUniqueValue());
-            grIp.addQuery('nic', '!=', grNic.getUniqueValue());
-            grIp.query();
-
-            if (grIp.next()) {
-                grCi.setValue('ip_address', grIp.getValue('ip_address'));
-            } else {
-                grCi.setValue('ip_address', '');
-            }
-
+            gs.debug('Updating ' + grCi.getValue('name'));
+            
+            grCi.setValue('ip_address', grIp.getValue('ip_address'));
             grCi.setWorkflow(false);
+            grCi.autoSysFields(false);
             grCi.update();
-
+            
         }
-
     }
 
-    var grNewNicCi;
-    var grOldNicCi;
-
-    // Get a GlideRecord on both the current and the previous NIC CI
-
-    grNewNicCi = current.cmdb_ci.getRefRecord();
-    if (current.cmdb_ci.changes()) {
-        grOldNicCi = previous.cmdb_ci.getRefRecord();
-    } else {
-        grOldNicCi = grNewNicCi;
-    }
-
-    switch (String(current.operation())) {
-
-        // If the NIC has been updated and the target CI has been touched:
-        // First remove the IP address linked to this NIC
-        // Second attach the same IP address to the new CI
-
-        case 'update':
-        if (current.cmdb_ci.changes()) {
-            _disconnectNIC(current, grOldNicCi);
-        }
-        _connectNIC(current, grNewNicCi);
-        break;
-
-        // If the NIC has been deleted, the remove/update the IP address that
-        // were potentially linked to it (i.e. update the ip_address of the linked CI)
-
-        case 'delete':
-        _disconnectNIC(current, grNewNicCi);
-        break;
-
-    }
-
-})(current, previous);
+})();
